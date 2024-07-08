@@ -1,0 +1,14 @@
+logger:
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  level: INFO
+
+qdrant:
+  indexing_threshold: 0
+  max_attempts: 4
+  wait_time_seconds: 0.7
+  default_segment_number: 5
+  batch_size: 16
+  model_name: BAAI/bge-base-en-v1.5
+  collection_name: pdf-articles
+  is_batch: false
+  limit: 5
