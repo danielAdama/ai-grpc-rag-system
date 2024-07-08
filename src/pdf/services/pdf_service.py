@@ -11,7 +11,6 @@ from typing import List, Dict, Any
 from config import BASE_DIR
 import re
 # from src.schemas import faq_schemas
-from config.qdrant_client import vector_db
 from config.logger import Logger
 
 logger = Logger(__name__)
@@ -147,7 +146,11 @@ class PDFService:
             return token.lemma_
         return token.text
     
-    def clean_text(self, collection_name: str, filename: str = "Education_in_Nigeria_A_Futuristic_Perspective.pdf"):
+    def clean_text(
+            self, 
+            collection_name: str, 
+            filename: str = "Education_in_Nigeria_A_Futuristic_Perspective.pdf"
+        ):
         loader = PyMuPDFLoader(str(BASE_DIR / "pdf" / "uploads" / filename))
         documents = loader.load()
 
@@ -168,18 +171,19 @@ class PDFService:
                 doc = self.nlp(chunk.page_content)
                 tokens = (' '.join(self.lemmatize(token) for token in doc if not token.is_stop and not token.is_punct and not token.is_space))
 
-                _id = self.generate_id(tokens)
-                metadata['_collection_name'] = collection_name
-                metadata['_id'] = _id
+                # Split the tokens into chunks and generate a new ID for each chunk
+                token_chunks = text_splitter.split_text(tokens)
+                for token_chunk in token_chunks:
+                    _id = self.generate_id(token_chunk)
+                    metadata['_collection_name'] = collection_name
+                    metadata['_id'] = _id
 
-                self.cleandocs.append(Document(
-                    page_content=tokens, 
-                    metadata=metadata
-                ))
+                    self.cleandocs.append(Document(
+                        page_content=token_chunk,
+                        metadata=metadata.copy()
+                    ))
 
         return self.cleandocs
-
-
 
     
     # def embed_document(

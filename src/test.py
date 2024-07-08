@@ -1,8 +1,11 @@
-from config.qdrant_client import vector_db
+from config.qdrant_client import QdrantVectorDB
 from pdf.services.pdf_service import PDFService
 
 pdf = PDFService()
+vector_db = QdrantVectorDB(
+    is_batch=True
+)
 
-document = pdf.clean_text("test")
-vector_db.run(document)
-
+documents = pdf.clean_text("pdf-articles")
+result = vector_db.run(documents)
+print(result)

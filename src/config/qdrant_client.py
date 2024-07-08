@@ -63,7 +63,7 @@ class QdrantVectorDB:
         self.__content_payload_key = content_payload_key
         self.__metadata_payload_key = metadata_payload_key
 
-    def encode(self, docs: List[str]) -> np.ndarray:
+    def encode(self, docs: List[Dict[str, Any]]) -> np.ndarray:
         """
         Encode a list of documents in batches using the Ember model.
 
@@ -75,8 +75,8 @@ class QdrantVectorDB:
             try:
                 return self.__sentence_model.encode([doc.page_content for doc in batch_docs])
             except Exception:
-                return self.__sentence_model.encode(batch_docs)
-        
+                return self.__sentence_model.encode([doc for doc in batch_docs])
+
         embeddings = []
         try:
             for i in tqdm(range(0, len(docs), self.__batch_size)):
@@ -92,6 +92,7 @@ class QdrantVectorDB:
                 raise logger.error(f"The embeddings have an incorrect dimension of {embeddings.shape[1]}.")
         except Exception as ex:
             raise logger.error(f"Attempt failed. Retrying Batch... Error: {str(ex)}")
+
         
     def generate_points(self, docs: List[Document]) -> List[Dict[str, Any]]:
         """
@@ -101,17 +102,17 @@ class QdrantVectorDB:
         :return: A list of points with the embeddings and metadata.
         """
         # Encode the documents in batches
-        embeddings = self.encode([doc['page_content'] for doc in docs])
+        embeddings = self.encode([doc.page_content for doc in docs])
         logger.info("Embedding Completed")
 
         # Combine the embeddings with the metadata
         points_list = [
             {
-                "id": doc.get('metadata')["_id"],
+                "id": doc.metadata["_id"],
                 "vector": content_embedding,
                 "payload": {
-                    self.__metadata_payload_key: doc['metadata'],
-                    self.__content_payload_key: doc['page_content'],
+                    self.__metadata_payload_key: doc.metadata,
+                    self.__content_payload_key: doc.page_content,
                 },
             }
             for (doc, content_embedding) in zip(docs, embeddings)
@@ -157,29 +158,24 @@ class QdrantVectorDB:
             """
             Upsert a batch of points into the specified collection.
 
-            :param batch_data: The batch of points to upsert.
+            :param batch_datas: The batch of points to upsert.
             """
             try:
                 batch_ids = [point['id'] for point in batch_data]
-                existing_ids = self.__client.get_collection(collection_name=self.__collection_name).points_count
-                new_ids = [id for id in batch_ids if id not in existing_ids]
-                if not new_ids:
-                    logger.info("All documents already exist in the collection. Skipping upsert.")
-                    return
-                batch_vectors = [point['vector'] for point in batch_data if point['id'] in new_ids]
-                batch_payloads = [point['payload'] for point in batch_data if point['id'] in new_ids]
+                batch_vectors = [point['vector'] for point in batch_data]
+                batch_payloads = [point['payload'] for point in batch_data]
+
                 upserted = self.__client.upsert(
                     collection_name=self.__collection_name,
                     points=Batch(
-                        ids=new_ids,
+                        ids=batch_ids,
                         vectors=batch_vectors,
                         payloads=batch_payloads
                     )
                 )
-                if upserted.status == UpdateStatus.COMPLETED:
-                    logger.info("Records inserted successfully.")
+                return upserted
             except Exception as ex:
-                raise logger.error(f"Attempt failed. Retrying Batch... {str(ex)}")
+                raise ValueError(f"Attempt failed. Retrying Batch... Error: {str(ex)}")
 
         @retry(stop=stop_after_attempt(self.__max_attempts), wait=wait_fixed(self.__wait_time_seconds))
         def upsert(points_list: List[Dict[str, Any]]) -> None:
@@ -198,9 +194,13 @@ class QdrantVectorDB:
         if self.__is_batch:
             for i in tqdm(range(0, len(points_list), self.__batch_size)):
                 batch_data = points_list[i:i+self.__batch_size]
-                upsert_batch(batch_data)
+                upserted = upsert_batch(batch_data)
+                if upserted.status == UpdateStatus.COMPLETED:
+                    logger.info("Records inserted successfully.")
         else:
-            upsert(points_list)
+            upserted = upsert(points_list)
+            if upserted.status == UpdateStatus.COMPLETED:
+                logger.info("Records inserted successfully.")
     
     def refine_result(self, filters):
         if filters is None:
@@ -255,4 +255,4 @@ class QdrantVectorDB:
         self.upsert_points(points_list)
 
 
-vector_db = QdrantVectorDB()
+# vector_db = QdrantVectorDB()
