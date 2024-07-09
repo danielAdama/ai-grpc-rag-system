@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package document;
+
+service SearchService {
+  // Searches through documents based on a query
+  rpc SearchDocuments(SearchRequest) returns (SearchResponse) {}
+}
+
+// Request message for searching documents
+message SearchRequest {
+  string query = 1;
+}
+
+// Response message for searching documents
+message SearchResponse {
+  string search_result = 1;
+}
+
+message Document {
+  string id = 1;
+  string content = 2;
+  map<string, string> metadata = 3;
+}

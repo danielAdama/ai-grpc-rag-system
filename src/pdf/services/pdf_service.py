@@ -219,6 +219,9 @@ class PDFService:
             filename: Union[str, None],
             document_type: Union[str, None]
         ):
+        """
+        Upload and encode PDF document.
+        """
         if not collection_name or not filename or not document_type:
             logger.error(f"Please specify the collection, filename, and document_type")
             return
@@ -236,6 +239,9 @@ class PDFService:
             self, 
             query
         ):
+        """
+        Search for a document using the vector database.
+        """
         if not query:
             logger.error(f"Please specify the query")
             return
