@@ -1,5 +1,5 @@
-from schemas.search_schema import MatchAnyOrInterval
 from qdrant_client import QdrantClient
+from qdrant_client import models
 from qdrant_client.models import (
     UpdateStatus,
     models,
@@ -7,7 +7,8 @@ from qdrant_client.models import (
     PointStruct,
     Filter, 
     FieldCondition, 
-    MatchAny, 
+    MatchAny,
+    MatchValue,
     DatetimeRange,
     Batch
 )
@@ -201,42 +202,27 @@ class QdrantVectorDB:
             upserted = upsert(points_list)
             if upserted.status == UpdateStatus.COMPLETED:
                 logger.info("Records inserted successfully.")
-    
-    def refine_result(self, filters):
-        if filters is None:
-            return None
-
-        filter_conds = []
-        for field, value in filters.items():
-            if value.any is not None:
-                filter_conds.append(FieldCondition(key=field, match=MatchAny(any=value.any)))
-            elif any([value.gt, value.gte, value.lt, value.lte]):
-                range_params = {k: v for k, v in [
-                    ("gt", value.gt), 
-                    ("gte", value.gte), 
-                    ("lt", value.lt), 
-                    ("lte", value.lte)
-                ] if v is not None}
-                filter_conds.append(FieldCondition(key=field, range=DatetimeRange(**range_params)))
-
-        return Filter(must=filter_conds) if filter_conds else None
         
-    def search(self, query, filters: Dict[str, MatchAnyOrInterval] = None):
+    def search(self, query):
         query_vector = self.__sentence_model.encode(query)
-        filter_obj = self.refine_result(filters)
 
-        search_params = {
+        search_args = {
             "collection_name": self.__collection_name,
             "query_vector": query_vector,
             "with_payload": True,
             "with_vectors": False,
             "limit": self.__limit
         }
+        search_args["search_params"]=models.SearchParams(
+                quantization=models.QuantizationSearchParams(
+                    ignore=False,
+                    rescore=False,
+                    oversampling=2.0,
+                ),
+                exact=True,
+            )
 
-        if filter_obj:
-            search_params["query_filter"] = filter_obj
-
-        hits = self.__client.search(**search_params)
+        hits = self.__client.search(**search_args)
 
         # Convert the search results to a list of Document objects
         results = [
@@ -255,4 +241,4 @@ class QdrantVectorDB:
         self.upsert_points(points_list)
 
 
-# vector_db = QdrantVectorDB()
+vector_db = QdrantVectorDB()

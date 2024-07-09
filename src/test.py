@@ -1,11 +1,20 @@
-from config.qdrant_client import QdrantVectorDB
 from pdf.services.pdf_service import PDFService
 
+###Sample questions
+# "How does Active Inference minimize free energy?" paper_8.pdf
+
+# pdf = PDFService()
+# result = pdf.embed_document(
+#     "pdf-articles",
+#     "paper_8.pdf",
+#     "artificial_intelligence_document"
+# )
+# print(result)
+
 pdf = PDFService()
-vector_db = QdrantVectorDB(
-    is_batch=True
+
+result = pdf.search(
+    query="How does Active Inference minimize free energy?"
 )
 
-documents = pdf.clean_text("pdf-articles")
-result = vector_db.run(documents)
 print(result)

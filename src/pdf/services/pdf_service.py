@@ -3,30 +3,46 @@ import spacy
 from io import BytesIO
 import os
 import uuid
+import subprocess
 from datetime import datetime as dt
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from config import BASE_DIR
 import re
-# from src.schemas import faq_schemas
+from config.qdrant_client import vector_db
 from config.logger import Logger
 
 logger = Logger(__name__)
 
 class PDFService:
+    SOURCE_PATTERN = r'(https?://[^\s]+|www\.[^\s]+)'
+    ISSN_PATTERN = r'ISSN:\s*[^\s]+'
+    TITLE_PATTERN = r'^\s*([^\n]+)\s*$'
+    AUTHOR_PATTERN = r'^\s*(?:\d+\s*)?(author[s]?:?)\s*\n*(.+)$'
+    KEYWORD_PATTERN = r'^Keywords:\s*(.*)$'
+
     def __init__(self):
+        self.check_model_downloaded()
         self.nlp = spacy.load("en_core_web_sm")
-        self.source_pattern = r'(https?://[^\s]+|www\.[^\s]+)'
-        self.issn_pattern = r'ISSN:\s*[^\s]+'
-        self.title_pattern = r'^\s*([^\n]+)\s*$'
-        self.author_pattern = r'^\s*(?:\d+\s*)?(author[s]?:?)\s*\n*(.+)$'
-        self.keyword_pattern = r'^Keywords:\s*(.*)$'
+        self.source_pattern = self.SOURCE_PATTERN
+        self.issn_pattern = self.ISSN_PATTERN
+        self.title_pattern = self.TITLE_PATTERN
+        self.author_pattern = self.AUTHOR_PATTERN
+        self.keyword_pattern = self.KEYWORD_PATTERN
         self.source = ''
         self.title = ''
         self.metadata = None
         self.cleandocs = []
+    
+    @staticmethod
+    def check_model_downloaded():
+        if not spacy.util.is_package("en_core_web_sm"):
+            logger.info("'en_core_web_sm' model not found. Downloading it now...")
+            makefile_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+            subprocess.check_call(["make", "-C", makefile_dir, "download_spacy_packages"])
+            logger.info("'en_core_web_sm' model downloaded.")
 
     @staticmethod
     def generate_id(content):
@@ -147,11 +163,12 @@ class PDFService:
         return token.text
     
     def clean_text(
-            self, 
+            self,
+            document_type: str,
             collection_name: str, 
-            filename: str = "Education_in_Nigeria_A_Futuristic_Perspective.pdf"
+            filepath: str
         ):
-        loader = PyMuPDFLoader(str(BASE_DIR / "pdf" / "uploads" / filename))
+        loader = PyMuPDFLoader(filepath)
         documents = loader.load()
 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
@@ -175,6 +192,7 @@ class PDFService:
                 token_chunks = text_splitter.split_text(tokens)
                 for token_chunk in token_chunks:
                     _id = self.generate_id(token_chunk)
+                    metadata['document_type'] = document_type
                     metadata['_collection_name'] = collection_name
                     metadata['_id'] = _id
 
@@ -184,50 +202,33 @@ class PDFService:
                     ))
 
         return self.cleandocs
-
     
-    # def embed_document(
-    #         self,
-    #     ):
-    #     try:
-    #         details = info.model_dump()
-    #         file_bytes = await file.read()
-    #         file_type = os.path.splitext(filename)[1][1:]
-    #         # if file_type not in ['pdf']:
-    #         #     raise UnsupportedFileFormatException()
-    #         df = self.read_file(file_bytes, file_type)
-
-    #     except Exception as ex:
-    #         pass
-    #         # raise InternalServerException(str(ex))
+    def embed_document(
+            self,
+            collection_name: Union[str, None],
+            filename: Union[str, None],
+            document_type: Union[str, None]
+        ):
+        if not collection_name or not filename or not document_type:
+            logger.error(f"Please specify the collection, filename, and document_type")
+            return
+        filepath = str(BASE_DIR / "pdf" / "uploads" / filename)
+        documents = self.clean_text(document_type, collection_name, filepath)
+        try:
+            vector_db.run(documents)
+            logger.info(f"{filename} embedded and inserted successfully")
+        except Exception as ex:
+            logger.error(f"{filename} not inserted {ex}")
         
-    #     metadata_template = {
-    #         'source': details.get('source'),
-    #         'file_name': filename,
-    #         'total_pages': len(df),
-    #         'format': file_type,
-    #         'title': details.get('title'),
-    #         'uploaded_at': dt.now().strftime("%Y-%m-%d %H:%M"),
-    #         '_collection_name': details.get('collection_name'),
-    #     }
-
-    #     documents = [
-    #         {
-    #             "page_content": self.format_text(
-    #                 row['Category'], row['Question'], row['Answer']
-    #             ),
-    #             "metadata": {
-    #                 **metadata_template,
-    #                 '_id': self.generate_id(self.format_text(
-    #                     row['Category'], row['Question'], row['Answer']
-    #                 )), #generate deterministic id to prevent duplicates
-    #                 'row': i
-    #             }
-    #         }
-    #         for i, row in df.iterrows()
-    #     ]
-
-    #     vector_db.run(documents)
-    #     logger.info("Documents embedded successfully")
-        
-    #     return {"message": "Documents embedded successfully"}
+        return {"message": f"{filename} embedded successfully"}
+    
+    def search(
+            self, 
+            query
+        ):
+        if not query:
+            logger.error(f"Please specify the query")
+            return
+        result = vector_db.search(query)
+        logger.info("Results retrieved successfully")
+        return {"result": result}
