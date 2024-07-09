@@ -1,0 +1,7 @@
+<query>
+{query}
+</query>
+
+Please be concise, and complete.\n
+
+Remember, you are here to help users, so don't hesitate to answer any questions they may have. Let's get started!
