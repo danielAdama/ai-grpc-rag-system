@@ -37,15 +37,15 @@ class PDFService:
         self.__system_template = self.load_file(PROMPT_DIR / "system_template.txt")
         self.__user_template = self.load_file(PROMPT_DIR / "user_template.txt")
         self.__nlp = spacy.load("en_core_web_sm")
-        self.__source_pattern = self.SOURCE_PATTERN
-        self.__issn_pattern = self.ISSN_PATTERN
-        self.__title_pattern = self.TITLE_PATTERN
-        self.__author_pattern = self.AUTHOR_PATTERN
-        self.__keyword_pattern = self.KEYWORD_PATTERN
-        self.__source = ''
-        self.__title = ''
-        self.__metadata = None
-        self.__cleandocs = []
+        self.source_pattern = self.SOURCE_PATTERN
+        self.issn_pattern = self.ISSN_PATTERN
+        self.title_pattern = self.TITLE_PATTERN
+        self.author_pattern = self.AUTHOR_PATTERN
+        self.keyword_pattern = self.KEYWORD_PATTERN
+        self.source = ''
+        self.title = ''
+        self.metadata = None
+        self.cleandocs = []
     @staticmethod
     def load_file(path: pathlib.Path):
         with open(str(path), 'r') as file:
@@ -54,7 +54,7 @@ class PDFService:
     @staticmethod
     def check_model_downloaded():
         if not spacy.util.is_package("en_core_web_sm"):
-            logger.info("'en_core_web_sm' model not found. Downloading it now...")
+            logger.warning("'en_core_web_sm' model not found. Downloading it now...")
             makefile_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
             subprocess.check_call(["make", "-C", makefile_dir, "download_spacy_packages"])
             logger.info("'en_core_web_sm' model downloaded.")
@@ -82,22 +82,22 @@ class PDFService:
         """
 
         try:
-            source = re.search(self.__source_pattern, text).group(0)
+            source = re.search(self.source_pattern, text).group(0)
         except AttributeError:
             pass
 
         if source and "researchgate.net" in source:
-            after_source_text = self.get_text_after(self.__source_pattern, text)
+            after_source_text = self.get_text_after(self.source_pattern, text)
             try:
                 title = re.search(
-                    self.__title_pattern, 
+                    self.title_pattern, 
                     after_source_text, 
                     re.MULTILINE
                 ).group(1).strip()
             except AttributeError:
                 pass
         else:
-            after_issn_text = self.get_text_after(self.__issn_pattern, text)
+            after_issn_text = self.get_text_after(self.issn_pattern, text)
             if after_issn_text:
                 for line in after_issn_text.split('\n'):
                     line = line.strip()
@@ -119,7 +119,7 @@ class PDFService:
         """
         try:
             author = re.search(
-                self.__author_pattern, 
+                self.author_pattern, 
                 text, 
                 re.IGNORECASE | re.MULTILINE
             ).group(2).strip()
@@ -139,7 +139,7 @@ class PDFService:
         """
         try:
             keywords = re.search(
-                self.__keyword_pattern, 
+                self.keyword_pattern, 
                 text, 
                 re.MULTILINE
             ).group(1).strip()
@@ -165,11 +165,6 @@ class PDFService:
         filtered_metadata.update({k: v for k, v in update_fields.items() if v})
 
         return filtered_metadata
-
-    def clean_chunk(self, chunk, metadata):
-        doc = self.__nlp(chunk.page_content)
-        tokens = [self.lemmatize(token) for token in doc if not token.is_stop and not token.is_punct and not token.is_space]
-        return Document(page_content=' '.join(tokens), metadata=metadata)
 
     def lemmatize(self, token):
         tag = token.tag_
@@ -200,7 +195,7 @@ class PDFService:
             ) if batch[0].metadata.get("page") == 0 else metadata
 
             for chunk in batch:
-                doc = self.nlp(chunk.page_content)
+                doc = self.__nlp(chunk.page_content)
                 tokens = (' '.join(self.lemmatize(token) for token in doc if not token.is_stop and not token.is_punct and not token.is_space))
 
                 # Split the tokens into chunks and generate a new ID for each chunk
@@ -227,7 +222,7 @@ class PDFService:
         if not collection_name or not filename or not document_type:
             logger.error(f"Please specify the collection, filename, and document_type")
             return
-        filepath = str(BASE_DIR / "pdf" / "uploads" / filename)
+        filepath = str(BASE_DIR / "src" / "pdf" /"uploads" / filename)
         documents = self.clean_text(document_type, collection_name, filepath)
         try:
             vector_db.run(documents)
