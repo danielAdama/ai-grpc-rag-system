@@ -1,7 +1,9 @@
 from pdf.services.pdf_service import PDFService
 
+pdf = PDFService()
 ###Sample questions
 # "How does Active Inference minimize free energy?" paper_8.pdf
+# "What is predictive coding?" paper_8.pdf
 
 # pdf = PDFService()
 # result = pdf.embed_document(
@@ -11,10 +13,15 @@ from pdf.services.pdf_service import PDFService
 # )
 # print(result)
 
-pdf = PDFService()
+# result = pdf.search(
+#     query="What is predictive coding?"
+# )
 
-result = pdf.search(
-    query="How does Active Inference minimize free energy?"
-)
+# print(result)
 
-print(result)
+# summarized = pdf.summarize(
+#     query="What is predictive coding?",
+#     user_id="danny@gmail.com"   
+# )
+
+# print(summarized["result"])

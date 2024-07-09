@@ -1,3 +1,10 @@
+import pathlib
+import sys
+
+current_dir = pathlib.Path(__file__).parent
+previous_dir = current_dir.parent.parent.parent
+sys.path.append(str(previous_dir))
+
 import pymupdf
 import spacy
 from io import BytesIO
@@ -8,8 +15,10 @@ from datetime import datetime as dt
 from langchain_community.document_loaders import PyMuPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
+from gen_ai.RAGLLM import AIGenerator
+
 from typing import List, Dict, Any, Union
-from config import BASE_DIR
+from config import BASE_DIR, PROMPT_DIR, client, redis_client
 import re
 from config.qdrant_client import vector_db
 from config.logger import Logger
@@ -25,17 +34,23 @@ class PDFService:
 
     def __init__(self):
         self.check_model_downloaded()
-        self.nlp = spacy.load("en_core_web_sm")
-        self.source_pattern = self.SOURCE_PATTERN
-        self.issn_pattern = self.ISSN_PATTERN
-        self.title_pattern = self.TITLE_PATTERN
-        self.author_pattern = self.AUTHOR_PATTERN
-        self.keyword_pattern = self.KEYWORD_PATTERN
-        self.source = ''
-        self.title = ''
-        self.metadata = None
-        self.cleandocs = []
-    
+        self.__system_template = self.load_file(PROMPT_DIR / "system_template.txt")
+        self.__user_template = self.load_file(PROMPT_DIR / "user_template.txt")
+        self.__nlp = spacy.load("en_core_web_sm")
+        self.__source_pattern = self.SOURCE_PATTERN
+        self.__issn_pattern = self.ISSN_PATTERN
+        self.__title_pattern = self.TITLE_PATTERN
+        self.__author_pattern = self.AUTHOR_PATTERN
+        self.__keyword_pattern = self.KEYWORD_PATTERN
+        self.__source = ''
+        self.__title = ''
+        self.__metadata = None
+        self.__cleandocs = []
+    @staticmethod
+    def load_file(path: pathlib.Path):
+        with open(str(path), 'r') as file:
+            return file.read()
+
     @staticmethod
     def check_model_downloaded():
         if not spacy.util.is_package("en_core_web_sm"):
@@ -67,22 +82,22 @@ class PDFService:
         """
 
         try:
-            source = re.search(self.source_pattern, text).group(0)
+            source = re.search(self.__source_pattern, text).group(0)
         except AttributeError:
             pass
 
         if source and "researchgate.net" in source:
-            after_source_text = self.get_text_after(self.source_pattern, text)
+            after_source_text = self.get_text_after(self.__source_pattern, text)
             try:
                 title = re.search(
-                    self.title_pattern, 
+                    self.__title_pattern, 
                     after_source_text, 
                     re.MULTILINE
                 ).group(1).strip()
             except AttributeError:
                 pass
         else:
-            after_issn_text = self.get_text_after(self.issn_pattern, text)
+            after_issn_text = self.get_text_after(self.__issn_pattern, text)
             if after_issn_text:
                 for line in after_issn_text.split('\n'):
                     line = line.strip()
@@ -104,7 +119,7 @@ class PDFService:
         """
         try:
             author = re.search(
-                self.author_pattern, 
+                self.__author_pattern, 
                 text, 
                 re.IGNORECASE | re.MULTILINE
             ).group(2).strip()
@@ -124,7 +139,7 @@ class PDFService:
         """
         try:
             keywords = re.search(
-                self.keyword_pattern, 
+                self.__keyword_pattern, 
                 text, 
                 re.MULTILINE
             ).group(1).strip()
@@ -152,7 +167,7 @@ class PDFService:
         return filtered_metadata
 
     def clean_chunk(self, chunk, metadata):
-        doc = self.nlp(chunk.page_content)
+        doc = self.__nlp(chunk.page_content)
         tokens = [self.lemmatize(token) for token in doc if not token.is_stop and not token.is_punct and not token.is_space]
         return Document(page_content=' '.join(tokens), metadata=metadata)
 
@@ -232,3 +247,24 @@ class PDFService:
         result = vector_db.search(query)
         logger.info("Results retrieved successfully")
         return {"result": result}
+    
+    def summarize(
+        self,
+        query: str,
+        user_id: str = "test-user"
+    ):
+        ai_init = AIGenerator(
+            system_prompt=self.__system_template,
+            context=self.search(query)["result"],
+            client=client,
+            redis_client=redis_client,
+            tools=None,
+            names_to_functions=None,
+            user_id=user_id
+        )
+        summarizer = ai_init.run_conversation(
+            self.__user_template,
+            query
+        )
+
+        return {"result": summarizer}
