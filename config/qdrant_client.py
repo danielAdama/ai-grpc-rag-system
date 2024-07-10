@@ -12,6 +12,7 @@ from qdrant_client.models import (
     DatetimeRange,
     Batch
 )
+from schemas.search_schemas import MatchAnyOrInterval
 from typing import List, Dict, Any
 from tenacity import retry, stop_after_attempt, wait_fixed
 from langchain.docstore.document import Document
@@ -202,27 +203,54 @@ class QdrantVectorDB:
             upserted = upsert(points_list)
             if upserted.status == UpdateStatus.COMPLETED:
                 logger.info("Records inserted successfully.")
+    
+    def refine(self, filters: Dict[str, MatchAnyOrInterval] = None):
+        if filters is None:
+            filter_obj = None
+            return filter_obj
+        else:
+            filter_conds = []
+            for field, value in filters.items():
+                if value.any is not None:
+                    filter_conds.append(FieldCondition(key=f"{self.__metadata_payload_key}.{field}", match=MatchAny(any=value.any)))
+                elif any([value.gt, value.gte, value.lt, value.lte]):
+                    gt_value = value.gt or value.gte
+                    lt_value = value.lt or value.lte
+                    filter_conds.append(
+                        FieldCondition(
+                            key=field,
+                            range=DatetimeRange(
+                                gt=gt_value,
+                                gte=(value.gte if gt_value == value.gte else None),
+                                lt=lt_value,
+                                lte=(value.lte if lt_value == value.lte else None),
+                            ),
+                        )
+                    )
+            filter_obj = Filter(must=filter_conds)
+
+            return filter_obj
         
-    def search(self, query):
+    def search(self, query, filters: Dict[str, MatchAnyOrInterval] = None):
         query_vector = self.__sentence_model.encode(query)
+        query_filter = self.refine(filters)
 
-        search_args = {
-            "collection_name": self.__collection_name,
-            "query_vector": query_vector,
-            "with_payload": True,
-            "with_vectors": False,
-            "limit": self.__limit
-        }
-        search_args["search_params"]=models.SearchParams(
-                quantization=models.QuantizationSearchParams(
-                    ignore=False,
-                    rescore=False,
-                    oversampling=2.0,
-                ),
-                exact=True,
-            )
-
-        hits = self.__client.search(**search_args)
+        hits = self.__client.search(
+            collection_name= self.__collection_name,
+            query_vector= query_vector,
+            query_filter= query_filter,
+            with_payload= True,
+            with_vectors= False,
+            limit= self.__limit,
+            search_params=models.SearchParams(
+                    quantization=models.QuantizationSearchParams(
+                        ignore=False,
+                        rescore=False,
+                        oversampling=2.0,
+                    ),
+                    exact=True,
+                )
+        )
 
         # Convert the search results to a list of Document objects
         results = [
