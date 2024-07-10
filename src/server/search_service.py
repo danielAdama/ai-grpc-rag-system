@@ -24,7 +24,6 @@ class SearchService(search_service_pb2_grpc.SearchServiceServicer):
             doc_dict = [
                 doc.dict() for doc in result["result"]
             ]
-
             response_dict = {"data": doc_dict}
             return search_service_pb2.SearchResponse(search_result=json.dumps(response_dict))
         except Exception as e:

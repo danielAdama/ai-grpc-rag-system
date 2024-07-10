@@ -8,6 +8,7 @@ sys.path.append(str(previous_dir))
 import pymupdf
 import spacy
 from io import BytesIO
+from schemas.search_schemas import MatchAnyOrInterval
 import os
 import uuid
 import subprocess
@@ -237,7 +238,8 @@ class PDFService:
     
     def search(
             self, 
-            query
+            query,
+            filters: Dict[str, MatchAnyOrInterval] = None
         ):
         """
         Search for a document using the vector database.
@@ -245,18 +247,19 @@ class PDFService:
         if not query:
             logger.error(f"Please specify the query")
             return
-        result = vector_db.search(query)
+        result = vector_db.search(query, filters)
         logger.info("Results retrieved successfully")
         return {"result": result}
     
     def summarize(
         self,
         query: str,
+        filters: Dict[str, MatchAnyOrInterval] = None,
         user_id: str = "test-user"
     ):
         ai_init = AIGenerator(
             system_prompt=self.__system_template,
-            context=self.search(query)["result"],
+            context=self.search(query, filters)["result"],
             client=client,
             redis_client=redis_client,
             tools=None,
