@@ -6,6 +6,7 @@ previous_dir = current_dir.parent.parent.parent
 sys.path.append(str(previous_dir))
 
 import pymupdf
+import json
 import spacy
 from io import BytesIO
 from schemas.search_schemas import MatchAnyOrInterval
@@ -249,7 +250,8 @@ class PDFService:
             return
         result = vector_db.search(query, filters)
         logger.info("Results retrieved successfully")
-        return {"result": result}
+        
+        return {"data":[json.dumps(doc.dict()) for doc in result]}
     
     def summarize(
         self,
@@ -259,16 +261,17 @@ class PDFService:
     ):
         ai_init = AIGenerator(
             system_prompt=self.__system_template,
-            context=self.search(query, filters)["result"],
+            context=self.search(query, filters),
             client=client,
             redis_client=redis_client,
             tools=None,
             names_to_functions=None,
             user_id=user_id
         )
+
         summarizer = ai_init.run_conversation(
             self.__user_template,
             query
         )
 
-        return {"result": summarizer}
+        return summarizer

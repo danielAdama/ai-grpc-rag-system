@@ -7,7 +7,7 @@ from pdf.services.pdf_service import PDFService
 import json
 
 pdf = PDFService()
-#Upload
+##Upload
 # result = pdf.embed_document(
 #     "pdf-articles",
 #     "paper_8.pdf",
@@ -21,17 +21,17 @@ filters = {
 }
 ## Search
 result = pdf.search(
-    query="What is predictive coding?",
+    query="How does Active Inference minimize free energy?",
     filters=filters
 )
+print(result)
 
-ans = {"data":[json.dumps(doc.dict()) for doc in result["result"]]}
-print(ans)
 
-# #Summarize
+# ##Summarize
 # summarized = pdf.summarize(
-#     query="What is predictive coding?",
+#     query="How does Active Inference minimize free energy?",
+#     filters=filters,
 #     user_id="danny@gmail.com" 
 # )
 
-# print(summarized["result"])
+# print(summarized)

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package pdfservice;
+
+service PDFService {
+    rpc UploadPDF(stream UploadPDFRequest) returns (UploadPDFResponse);
+    rpc Search(SearchRequest) returns (SearchResponse);
+    rpc Summarize(SummarizeRequest) returns (SummarizeResponse);
+}
+
+message UploadPDFRequest {
+    string collection_name = 1;
+    string document_type = 2;
+    string filename = 3;
+}
+
+message UploadPDFResponse {
+    string message = 1;
+}
+
+message SearchRequest {
+    string query = 1;
+    string filters = 2;
+}
+
+message SearchResponse {
+    string search_result = 1;
+    string message = 2;
+}
+
+message SummarizeRequest {
+    string query = 1;
+    string user_id = 2;
+    string filters = 3;
+}
+
+message SummarizeResponse {
+    string summary = 1;
+    string message = 2;
+}
