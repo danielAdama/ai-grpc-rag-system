@@ -14,6 +14,7 @@ import pdf_service_pb2
 import pdf_service_pb2_grpc
 from schemas.search_schemas import MatchAnyOrInterval
 from config import BASE_DIR
+from utils import _parse_filters, _handle_exception
 import json
 
 from config.logger import Logger
@@ -36,7 +37,6 @@ class PDFServiceServicer(pdf_service_pb2_grpc.PDFServiceServicer):
 
             if not filename:
                 raise ValueError("Filename cannot be empty")
-
             filepath = str(BASE_DIR / "src" / "pdf" / "uploads" / filename)
             
             if not os.path.exists(filepath):
@@ -48,64 +48,40 @@ class PDFServiceServicer(pdf_service_pb2_grpc.PDFServiceServicer):
                 document_type
             )
             return pdf_service_pb2.UploadPDFResponse(message=result["message"])
-        except Exception as e:
-            logger.error(f"Error in UploadPDF: {str(e)}")
-            context.set_details(str(e))
-            context.set_code(grpc.StatusCode.UNKNOWN)
+        except ValueError as ve:
+            logger.error(f"ValueError in UploadPDF: {str(ve)}")
+            context.set_details(str(ve))
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
             return pdf_service_pb2.UploadPDFResponse()
+        except FileNotFoundError as fnfe:
+            logger.error(f"FileNotFoundError in UploadPDF: {str(fnfe)}")
+            context.set_details(str(fnfe))
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            return pdf_service_pb2.UploadPDFResponse()
+        except Exception as ex:
+            return _handle_exception("UploadPDF", context, ex)
 
     def Search(self, request, context):
         try:
-            filters_str = request.filters
-            if filters_str.startswith('"') and filters_str.endswith('"'):
-                filters_str = filters_str[1:-1]
-            filters = filters_str.split(':')
-            if len(filters) == 2:
-                key, value = filters
-                filters = {
-                    str(key.strip()): MatchAnyOrInterval(any=[value.strip('[]')])
-                }
-                result = self.pdf_service.search(
-                    query=request.query,
-                    filters=filters
-                )
-                return pdf_service_pb2.SearchResponse(search_result=json.dumps(result), message="Search completed")
-            else:
-                logger.warning("Invalid filter format")
+            filters = _parse_filters(request.filters)
+            if filters is None:
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 return pdf_service_pb2.SearchResponse()
-        except Exception as e:
-            logger.error(f"Error in Search: {str(e)}")
-            context.set_details(str(e))
-            context.set_code(grpc.StatusCode.UNKNOWN)
-            return pdf_service_pb2.SearchResponse()
+            result = self.pdf_service.search(query=request.query, filters=filters)
+            return pdf_service_pb2.SearchResponse(search_result=json.dumps(result), message="Search completed")
+        except Exception as ex:
+            return _handle_exception("Search", context, ex)
 
     def Summarize(self, request, context):
         try:
-            filters_str = request.filters
-            if filters_str.startswith('"') and filters_str.endswith('"'):
-                filters_str = filters_str[1:-1]
-            filters = filters_str.split(':')
-            if len(filters) == 2:
-                key, value = filters
-                filters = {
-                    str(key.strip()): MatchAnyOrInterval(any=[value.strip('[]')])
-                }
-                summarized = self.pdf_service.summarize(
-                    query=request.query,
-                    filters=filters,
-                    user_id=request.user_id
-                )
-                return pdf_service_pb2.SummarizeResponse(summary=summarized, message="Summarization completed")
-            else:
-                logger.warning("Invalid filter format")
+            filters = _parse_filters(request.filters)
+            if filters is None:
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 return pdf_service_pb2.SearchResponse()
-        except Exception as e:
-            logger.error(f"Error in Summarize: {str(e)}")
-            context.set_details(str(e))
-            context.set_code(grpc.StatusCode.UNKNOWN)
-            return pdf_service_pb2.SummarizeResponse()
+            summarized = self.pdf_service.summarize(query=request.query, filters=filters, user_id=request.user_id)
+            return pdf_service_pb2.SummarizeResponse(summary=summarized, message="Summarization completed")
+        except Exception as ex:
+            return _handle_exception("Summarize", context, ex)
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
