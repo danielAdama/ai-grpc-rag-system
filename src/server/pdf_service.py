@@ -10,8 +10,8 @@ from concurrent import futures
 import grpc
 from pdf.services.pdf_service import PDFService
 from google.protobuf.json_format import MessageToDict
-import pdf_service_pb2
-import pdf_service_pb2_grpc
+from src.server import pdf_service_pb2
+from src.server import pdf_service_pb2_grpc
 from schemas.search_schemas import MatchAnyOrInterval
 from config import BASE_DIR
 from utils import _parse_filters, _handle_exception

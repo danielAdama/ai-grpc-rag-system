@@ -3,6 +3,13 @@
 import grpc
 import warnings
 
+import pathlib
+import sys
+
+current_dir = pathlib.Path(__file__)
+previous_dir = current_dir.parent
+sys.path.append(str(previous_dir))
+
 import pdf_service_pb2 as pdf__service__pb2
 
 GRPC_GENERATED_VERSION = '1.64.1'

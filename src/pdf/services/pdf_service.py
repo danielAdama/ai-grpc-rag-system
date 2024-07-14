@@ -189,6 +189,7 @@ class PDFService:
         batch_size = 20
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i:i + batch_size]
+            print(batch)
 
             metadata = self.clean_metadata(
                 batch[0].metadata,
@@ -229,13 +230,13 @@ class PDFService:
             return
         filepath = str(BASE_DIR / "src" / "pdf" /"uploads" / filename)
         documents = self.clean_text(document_type, collection_name, filepath)
-        try:
-            vector_db.run(documents)
-            logger.info(f"{filename} embedded and inserted successfully")
-        except Exception as ex:
-            logger.error(f"{filename} not inserted {ex}")
+        # try:
+        #     vector_db.run(documents)
+        #     logger.info(f"{filename} embedded and inserted successfully")
+        # except Exception as ex:
+        #     logger.error(f"{filename} not inserted {ex}")
         
-        return {"message": f"{filename} embedded successfully"}
+        # return {"message": f"{filename} embedded successfully"}
     
     def search(
             self, 
