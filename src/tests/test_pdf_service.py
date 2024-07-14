@@ -63,7 +63,3 @@ def test_generate_id(pdf_service):
     _id = pdf_service.generate_id(content)
     assert isinstance(_id, str)
     assert len(_id) == 36  # UUID length
-
-
-if __name__ == "__main__":
-    pytest.main()

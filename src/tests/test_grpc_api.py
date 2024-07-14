@@ -1,5 +1,9 @@
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, message="Support for class-based `config` is deprecated")
+
 import pytest
-import grpc
+from concurrent import futures
+from unittest.mock import patch, MagicMock
 import pathlib
 import sys
 
@@ -7,74 +11,76 @@ current_dir = pathlib.Path(__file__).parent.parent
 previous_dir = current_dir.parent
 sys.path.append(str(previous_dir))
 
-from src.server.pdf_service_pb2 import UploadPDFRequest, UploadPDFResponse, SearchRequest, SearchResponse, SummarizeRequest, SummarizeResponse
-from src.server import  pdf_service_pb2_grpc
-
-# from pdf.services.pdf_service import PDFService
-# from src.server.pdf_service import PDFServiceServicer
-# from src.server.pdf_service_pb2 import UploadPDFRequest, UploadPDFResponse, SearchRequest, SearchResponse, SummarizeRequest, SummarizeResponse
+from src.server.pdf_service_pb2 import (
+    UploadPDFRequest, 
+    UploadPDFResponse, 
+    SearchRequest, 
+    SearchResponse,
+    SummarizeRequest, 
+    SummarizeResponse
+)
+from src.server.pdf_service import PDFServiceServicer
+from pdf.services.pdf_service import PDFService
+from src.server import pdf_service_pb2, pdf_service_pb2_grpc
+from grpc import StatusCode, RpcError
 
 from config.logger import Logger
 logger = Logger(__name__)
 
+class TestPDFServiceServicer:
+    def setup_method(self):
+        self.pdf_service_servicer = PDFServiceServicer()
 
-@pytest.fixture(scope="module")
-def grpc_add_to_server():
-    from src.server.pdf_service_pb2 import add_PDFServiceServicer_to_server
+    @patch.object(PDFService, 'embed_document', return_value={"message": "test.pdf embedded successfully"})
+    def test_upload_pdf_success(self, mock_embed_document):
+        request = UploadPDFRequest(
+            collection_name="test_collection",
+            document_type="test_document",
+            filename="test.pdf"
+        )
+        response = self.pdf_service_servicer.UploadPDF(iter([request]), None)
+        assert response.message == "test.pdf embedded successfully"
 
-    return add_PDFServiceServicer_to_server
+    @patch("pdf.services.pdf_service.os.path.exists", return_value=False)
+    def test_upload_pdf_file_not_found(self, mock_exists):
+        request = UploadPDFRequest(
+            collection_name="test_collection",
+            document_type="test_document",
+            filename="non_existent_file.pdf"
+        )
+        context = MagicMock()
+        response = self.pdf_service_servicer.UploadPDF(iter([request]), context)
+        assert context.set_code.call_args[0][0] == StatusCode.NOT_FOUND
+        assert "File non_existent_file.pdf does not exist in the uploads directory" in context.set_details.call_args[0][0]
 
-@pytest.fixture(scope="module")
-def grpc_servicer():
-    from src.server import PDFServiceServicer
+    @patch.object(PDFService, 'search', return_value={"data": ["Test search result"]})
+    def test_search_success(self, mock_search):
+        request = SearchRequest(query="test_query", filters="document_type:[artificial_intelligence_document]")
+        context = MagicMock()
+        response = self.pdf_service_servicer.Search(request, context)
+        assert response.message == "Search completed"
+        assert response.search_result == '{"data": ["Test search result"]}'
 
-    return PDFServiceServicer()
+    @patch("pdf.services.pdf_service.vector_db.search", side_effect=RpcError("Test RPC error"))
+    def test_search_rpc_error(self, mock_search):
+        request = SearchRequest(query="test_query", filters="document_type:[artificial_intelligence_document]")
+        context = MagicMock()
+        response = self.pdf_service_servicer.Search(request, context)
+        assert context.set_code.call_args[0][0] == StatusCode.UNKNOWN
+        assert "Test RPC error" in context.set_details.call_args[0][0]
 
-@pytest.fixture(scope="module")
-def grpc_stub(self, grpc_channel):
-    from src.server.pdf_service_pb2_grpc import PDFServiceStub
+    @patch.object(PDFService, 'summarize', return_value="Test summary")
+    def test_summarize_success(self, mock_summarize):
+        request = SummarizeRequest(query="test_query", filters="document_type:[artificial_intelligence_document]", user_id="test-user")
+        context = MagicMock()
+        response = self.pdf_service_servicer.Summarize(request, context)
+        assert response.message == "Summarization completed"
+        assert response.summary == "Test summary"
 
-    stub = PDFServiceStub(grpc_channel)
-    return stub
-
-@pytest.fixture(scope="module")
-def grpc_channel():
-    channel = grpc.insecure_channel('localhost:50051')
-    yield channel
-    channel.close()
-
-    # def test_upload_pdf(self, grpc_stub):
-    #     filename="paper_8.pdf"
-    #     request = UploadPDFRequest(
-    #         collection_name="test_collection",
-    #         document_type="artificial_intelligence_document",
-    #         filename=filename
-    #     )
-    #     response = grpc_stub.UploadPDF(request)
-    #     assert isinstance(response, UploadPDFResponse)
-    #     assert response.message == f"{filename} embedded successfully"
-
-    # def test_search(self, grpc_stub):
-    #     request = SearchRequest(
-    #         collection_name="test_collection",
-    #         query="How does Active Inference minimize free energy?",
-    #         filters="document_type:[artificial_intelligence_document]"
-    #     )
-    #     response = grpc_stub.Search(request)
-    #     assert isinstance(response, SearchResponse)
-    #     assert response.message == "Search completed"
-    #     assert len(response.search_result) > 0
-
-    # def test_summarize(self, grpc_stub):
-    #     request = SummarizeRequest(
-    #         collection_name="test_collection",
-    #         query="How does Active Inference minimize free energy?",
-    #         filters="document_type:[artificial_intelligence_document]"
-    #     )
-    #     response = grpc_stub.Summarize(request)
-    #     assert isinstance(response, SummarizeResponse)
-    #     assert response.message == "Summarization completed"
-    #     assert len(response.summary) > 0
-
-# if __name__ == "__main__":
-#     pytest.main()
+    @patch("pdf.services.pdf_service.vector_db.search", side_effect=RpcError("Test RPC error"))
+    def test_summarize_rpc_error(self, mock_search):
+        request = SummarizeRequest(query="test_query", filters="document_type:[artificial_intelligence_document]", user_id="test-user")
+        context = MagicMock()
+        response = self.pdf_service_servicer.Summarize(request, context)
+        assert context.set_code.call_args[0][0] == StatusCode.UNKNOWN
+        assert "Test RPC error" in context.set_details.call_args[0][0]
