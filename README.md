@@ -1,5 +1,3 @@
-# ai-grpc-rag-system
-
 # AI-GRPC-RAG-System Documentation
 
 ## Table of Contents
@@ -111,6 +109,13 @@ This will start the server and it will listen on port `50051`.
 ## Usage
 
 ### Upload PDF
+<img width="1680" alt="pdf upload" src="https://github.com/user-attachments/assets/b4f29236-fbf6-481f-989b-edf09ed179f2">
+
+<img width="1680" alt="pdf upload 2" src="https://github.com/user-attachments/assets/0169228f-13c9-4ba9-bc0f-c6f3b3260714">
+
+<img width="1680" alt="pdf upload 3" src="https://github.com/user-attachments/assets/cec3bff5-ab3c-4f9f-af7a-3f3ed98bb60e">
+
+<img width="1680" alt="pdf upload 4" src="https://github.com/user-attachments/assets/16d76ede-1043-4ccc-a93f-6da44f488d65">
 
 - Endpoint: `PDFService/UploadPDF`
 - Content-Type: application/grpc
@@ -125,6 +130,9 @@ This will start the server and it will listen on port `50051`.
 ```
 
 ### Search
+<img width="1680" alt="Search 1" src="https://github.com/user-attachments/assets/3d235020-ee69-44bc-8e7b-4c6beba3af81">
+
+<img width="1680" alt="Search 2" src="https://github.com/user-attachments/assets/25e033cb-85d9-49fa-8c27-f2349ff690a1">
 
 - Endpoint: `PDFService/Search`
 - Content-Type: application/grpc
@@ -138,6 +146,7 @@ This will start the server and it will listen on port `50051`.
 ```
 
 ### Summarize
+<img width="1680" alt="Summarized" src="https://github.com/user-attachments/assets/ac0d0241-9587-44f7-abde-d8df3bee586a">
 
 - Endpoint: `PDFService/Summarize`
 - Content-Type: application/grpc
