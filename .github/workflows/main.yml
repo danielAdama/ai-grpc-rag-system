@@ -41,9 +41,12 @@ jobs:
         echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .env
         echo "REDIS_PORT=${REDIS_PORT}" >> .env
     
-    - name: Source .env file
-      run: source .env
-
+    - name: Source .env file and export variables
+      run: |
+        set -a
+        source .env
+        set +a
+    
     - name: Print environment variables
       run: |
         echo "GROQ_API_KEY=$GROQ_API_KEY"
@@ -55,14 +58,4 @@ jobs:
         echo "REDIS_PORT=$REDIS_PORT"
     
     - name: Run tests
-      env:
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
-        QDRANT_URL: ${{ secrets.QDRANT_URL }}
-        REDIS_DB: ${{ secrets.REDIS_DB }}
-        REDIS_HOST: ${{ secrets.REDIS_HOST }}
-        REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-        REDIS_PORT: ${{ secrets.REDIS_PORT }}
-      run: |
-        source .env
-        pytest
+      run: pytest
