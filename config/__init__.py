@@ -13,7 +13,6 @@ client = Groq(
     api_key=os.environ.get("GROQ_API_KEY")
 )
 
-OPENAI_MODEL = os.environ.get("MODEL")
 redis_client = redis.Redis(
     host=os.environ.get("REDIS_HOST"), 
     port=int(os.environ.get("REDIS_PORT")),
