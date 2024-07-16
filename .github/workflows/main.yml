@@ -33,13 +33,16 @@ jobs:
         REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         REDIS_PORT: ${{ secrets.REDIS_PORT }}
       run: |
-        echo "GROQ_API_KEY=${GROQ_API_KEY}" >> env
-        echo "QDRANT_API_KEY=${QDRANT_API_KEY}" >> env
-        echo "QDRANT_URL=${QDRANT_URL}" >> env
-        echo "REDIS_DB=${REDIS_DB}" >> env
-        echo "REDIS_HOST=${REDIS_HOST}" >> env
-        echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> env
-        echo "REDIS_PORT=${REDIS_PORT}" >> env
+        echo "GROQ_API_KEY=${GROQ_API_KEY}" >> .env
+        echo "QDRANT_API_KEY=${QDRANT_API_KEY}" >> .env
+        echo "QDRANT_URL=${QDRANT_URL}" >> .env
+        echo "REDIS_DB=${REDIS_DB}" >> .env
+        echo "REDIS_HOST=${REDIS_HOST}" >> .env
+        echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> .env
+        echo "REDIS_PORT=${REDIS_PORT}" >> .env
+    
+    - name: Source .env file
+      run: source .env
 
     - name: Print environment variables
       run: |
@@ -50,6 +53,16 @@ jobs:
         echo "REDIS_HOST=$REDIS_HOST"
         echo "REDIS_PASSWORD=$REDIS_PASSWORD"
         echo "REDIS_PORT=$REDIS_PORT"
-
+    
     - name: Run tests
-      run: pytest
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+        QDRANT_URL: ${{ secrets.QDRANT_URL }}
+        REDIS_DB: ${{ secrets.REDIS_DB }}
+        REDIS_HOST: ${{ secrets.REDIS_HOST }}
+        REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+        REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      run: |
+        source .env
+        pytest
