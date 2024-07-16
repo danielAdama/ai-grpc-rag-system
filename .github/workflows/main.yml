@@ -1,52 +1,24 @@
-name: Context Testing
-
-on: [push, pull_request]
+name: Example Workflow with Multiple Secrets
+on: [push]
 
 jobs:
-  dump_contexts_to_log:
+  example-job:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Dump GitHub context
-        env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-        run: echo "$GITHUB_CONTEXT"
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
-      - name: Dump env context
-        env:
-          MY_ENV_VAR: ${{ env.MY_ENV_VAR }}
-          ENV_CONTEXT: ${{ toJson(env) }}
+      - name: Use secrets
         run: |
-          echo "MY_ENV_VAR: $MY_ENV_VAR"
-          echo "$ENV_CONTEXT"
-
-      - name: Dump job context
+          echo "NPM_TOKEN: ${{ secrets.NPM_TOKEN }}"
+          echo "SUPERSECRET: ${{ secrets.SUPERSECRET }}"
+          echo "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}"
         env:
-          JOB_CONTEXT: ${{ toJson(job) }}
-        run: echo "$JOB_CONTEXT"
-
-      - name: Dump steps context
-        env:
-          STEPS_CONTEXT: ${{ toJson(steps) }}
-        run: echo "$STEPS_CONTEXT"
-
-      - name: Dump runner context
-        env:
-          RUNNER_CONTEXT: ${{ toJson(runner) }}
-        run: echo "$RUNNER_CONTEXT"
-
-      - name: Dump matrix context
-        env:
-          MATRIX_CONTEXT: ${{ toJson(matrix) }}
-        run: echo "$MATRIX_CONTEXT"
-
-      - name: Dump strategy context
-        env:
-          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
-        run: echo "$STRATEGY_CONTEXT"
-
-      - name: Conditional Step based on event name
-        if: ${{ github.event_name == 'pull_request' }}
-        run: echo "This is a pull request event."
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          SUPERSECRET: ${{ secrets.SUPERSECRET }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
