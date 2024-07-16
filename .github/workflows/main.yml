@@ -1,312 +1,52 @@
+name: Context Testing
 
-Workflow key	Context	Special functions
-run-name	github, inputs, vars	None
-concurrency	github, inputs, vars	None
-env	github, secrets, inputs, vars	None
-jobs.<job_id>.concurrency	github, needs, strategy, matrix, inputs, vars	None
-jobs.<job_id>.container	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.container.credentials	github, needs, strategy, matrix, env, vars, secrets, inputs	None
-jobs.<job_id>.container.env.<env_id>	github, needs, strategy, matrix, job, runner, env, vars, secrets, inputs	None
-jobs.<job_id>.container.image	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.continue-on-error	github, needs, strategy, vars, matrix, inputs	None
-jobs.<job_id>.defaults.run	github, needs, strategy, matrix, env, vars, inputs	None
-jobs.<job_id>.env	github, needs, strategy, matrix, vars, secrets, inputs	None
-jobs.<job_id>.environment	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.environment.url	github, needs, strategy, matrix, job, runner, env, vars, steps, inputs	None
-jobs.<job_id>.if	github, needs, vars, inputs	always, cancelled, success, failure
-jobs.<job_id>.name	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.outputs.<output_id>	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	None
-jobs.<job_id>.runs-on	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.secrets.<secrets_id>	github, needs, strategy, matrix, secrets, inputs, vars	None
-jobs.<job_id>.services	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.services.<service_id>.credentials	github, needs, strategy, matrix, env, vars, secrets, inputs	None
-jobs.<job_id>.services.<service_id>.env.<env_id>	github, needs, strategy, matrix, job, runner, env, vars, secrets, inputs	None
-jobs.<job_id>.steps.continue-on-error	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.steps.env	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.steps.if	github, needs, strategy, matrix, job, runner, env, vars, steps, inputs	always, cancelled, success, failure, hashFiles
-jobs.<job_id>.steps.name	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.steps.run	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.steps.timeout-minutes	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.steps.with	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.steps.working-directory	github, needs, strategy, matrix, job, runner, env, vars, secrets, steps, inputs	hashFiles
-jobs.<job_id>.strategy	github, needs, vars, inputs	None
-jobs.<job_id>.timeout-minutes	github, needs, strategy, matrix, vars, inputs	None
-jobs.<job_id>.with.<with_id>	github, needs, strategy, matrix, inputs, vars	None
-on.workflow_call.inputs.<inputs_id>.default	github, inputs, vars	None
-on.workflow_call.outputs.<output_id>.value	github, jobs, vars, inputs	None
-Example: printing context information to the log
-You can print the contents of contexts to the log for debugging. The toJSON function is required to pretty-print JSON objects to the log.
-
-Warning: When using the whole github context, be mindful that it includes sensitive information such as github.token. GitHub masks secrets when they are printed to the console, but you should be cautious when exporting or printing the context.
-
-YAML
-name: Context testing
-on: push
+on: [push, pull_request]
 
 jobs:
   dump_contexts_to_log:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
+
+      - name: Dump env context
+        env:
+          MY_ENV_VAR: ${{ env.MY_ENV_VAR }}
+          ENV_CONTEXT: ${{ toJson(env) }}
+        run: |
+          echo "MY_ENV_VAR: $MY_ENV_VAR"
+          echo "$ENV_CONTEXT"
+
       - name: Dump job context
         env:
           JOB_CONTEXT: ${{ toJson(job) }}
         run: echo "$JOB_CONTEXT"
+
       - name: Dump steps context
         env:
           STEPS_CONTEXT: ${{ toJson(steps) }}
         run: echo "$STEPS_CONTEXT"
+
       - name: Dump runner context
         env:
           RUNNER_CONTEXT: ${{ toJson(runner) }}
         run: echo "$RUNNER_CONTEXT"
-      - name: Dump strategy context
-        env:
-          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
-        run: echo "$STRATEGY_CONTEXT"
+
       - name: Dump matrix context
         env:
           MATRIX_CONTEXT: ${{ toJson(matrix) }}
         run: echo "$MATRIX_CONTEXT"
-github context
-The github context contains information about the workflow run and the event that triggered the run. You can also read most of the github context data in environment variables. For more information about environment variables, see "Variables."
 
-Warning: When using the whole github context, be mindful that it includes sensitive information such as github.token. GitHub masks secrets when they are printed to the console, but you should be cautious when exporting or printing the context.
-
-Warning: When creating workflows and actions, you should always consider whether your code might execute untrusted input from possible attackers. Certain contexts should be treated as untrusted input, as an attacker could insert their own malicious content. For more information, see "Security hardening for GitHub Actions."
-
-Property name	Type	Description
-github	object	The top-level context available during any job or step in a workflow. This object contains all the properties listed below.
-github.action	string	The name of the action currently running, or the id of a step. GitHub removes special characters, and uses the name __run when the current step runs a script without an id. If you use the same action more than once in the same job, the name will include a suffix with the sequence number with underscore before it. For example, the first script you run will have the name __run, and the second script will be named __run_2. Similarly, the second invocation of actions/checkout will be actionscheckout2.
-github.action_path	string	The path where an action is located. This property is only supported in composite actions. You can use this path to access files located in the same repository as the action, for example by changing directories to the path: cd ${{ github.action_path }} .
-github.action_ref	string	For a step executing an action, this is the ref of the action being executed. For example, v2.
-
-Do not use in the run keyword. To make this context work with composite actions, reference it within the env context of the composite action.
-github.action_repository	string	For a step executing an action, this is the owner and repository name of the action. For example, actions/checkout.
-
-Do not use in the run keyword. To make this context work with composite actions, reference it within the env context of the composite action.
-github.action_status	string	For a composite action, the current result of the composite action.
-github.actor	string	The username of the user that triggered the initial workflow run. If the workflow run is a re-run, this value may differ from github.triggering_actor. Any workflow re-runs will use the privileges of github.actor, even if the actor initiating the re-run (github.triggering_actor) has different privileges.
-github.actor_id	string	The account ID of the person or app that triggered the initial workflow run. For example, 1234567. Note that this is different from the actor username.
-github.api_url	string	The URL of the GitHub REST API.
-github.base_ref	string	The base_ref or target branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
-github.env	string	Path on the runner to the file that sets environment variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
-github.event	object	The full event webhook payload. You can access individual properties of the event using this context. This object is identical to the webhook payload of the event that triggered the workflow run, and is different for each event. The webhooks for each GitHub Actions event is linked in "Events that trigger workflows." For example, for a workflow run triggered by the push event, this object contains the contents of the push webhook payload.
-github.event_name	string	The name of the event that triggered the workflow run.
-github.event_path	string	The path to the file on the runner that contains the full event webhook payload.
-github.graphql_url	string	The URL of the GitHub GraphQL API.
-github.head_ref	string	The head_ref or source branch of the pull request in a workflow run. This property is only available when the event that triggers a workflow run is either pull_request or pull_request_target.
-github.job	string	The job_id of the current job.
-Note: This context property is set by the Actions runner, and is only available within the execution steps of a job. Otherwise, the value of this property will be null.
-github.path	string	Path on the runner to the file that sets system PATH variables from workflow commands. This file is unique to the current step and is a different file for each step in a job. For more information, see "Workflow commands for GitHub Actions."
-github.ref	string	The fully-formed ref of the branch or tag that triggered the workflow run. For workflows triggered by push, this is the branch or tag ref that was pushed. For workflows triggered by pull_request, this is the pull request merge branch. For workflows triggered by release, this is the release tag created. For other triggers, this is the branch or tag ref that triggered the workflow run. This is only set if a branch or tag is available for the event type. The ref given is fully-formed, meaning that for branches the format is refs/heads/<branch_name>, for pull requests it is refs/pull/<pr_number>/merge, and for tags it is refs/tags/<tag_name>. For example, refs/heads/feature-branch-1.
-github.ref_name	string	The short ref name of the branch or tag that triggered the workflow run. This value matches the branch or tag name shown on GitHub. For example, feature-branch-1.
-
-For pull requests, the format is <pr_number>/merge.
-github.ref_protected	boolean	true if branch protections or rulesets are configured for the ref that triggered the workflow run.
-github.ref_type	string	The type of ref that triggered the workflow run. Valid values are branch or tag.
-github.repository	string	The owner and repository name. For example, octocat/Hello-World.
-github.repository_id	string	The ID of the repository. For example, 123456789. Note that this is different from the repository name.
-github.repository_owner	string	The repository owner's username. For example, octocat.
-github.repository_owner_id	string	The repository owner's account ID. For example, 1234567. Note that this is different from the owner's name.
-github.repositoryUrl	string	The Git URL to the repository. For example, git://github.com/octocat/hello-world.git.
-github.retention_days	string	The number of days that workflow run logs and artifacts are kept.
-github.run_id	string	A unique number for each workflow run within a repository. This number does not change if you re-run the workflow run.
-github.run_number	string	A unique number for each run of a particular workflow in a repository. This number begins at 1 for the workflow's first run, and increments with each new run. This number does not change if you re-run the workflow run.
-github.run_attempt	string	A unique number for each attempt of a particular workflow run in a repository. This number begins at 1 for the workflow run's first attempt, and increments with each re-run.
-github.secret_source	string	The source of a secret used in a workflow. Possible values are None, Actions, Codespaces, or Dependabot.
-github.server_url	string	The URL of the GitHub server. For example: https://github.com.
-github.sha	string	The commit SHA that triggered the workflow. The value of this commit SHA depends on the event that triggered the workflow. For more information, see "Events that trigger workflows." For example, ffac537e6cbbf934b08745a378932722df287a53.
-github.token	string	A token to authenticate on behalf of the GitHub App installed on your repository. This is functionally equivalent to the GITHUB_TOKEN secret. For more information, see "Automatic token authentication."
-Note: This context property is set by the Actions runner, and is only available within the execution steps of a job. Otherwise, the value of this property will be null.
-github.triggering_actor	string	The username of the user that initiated the workflow run. If the workflow run is a re-run, this value may differ from github.actor. Any workflow re-runs will use the privileges of github.actor, even if the actor initiating the re-run (github.triggering_actor) has different privileges.
-github.workflow	string	The name of the workflow. If the workflow file doesn't specify a name, the value of this property is the full path of the workflow file in the repository.
-github.workflow_ref	string	The ref path to the workflow. For example, octocat/hello-world/.github/workflows/my-workflow.yml@refs/heads/my_branch.
-github.workflow_sha	string	The commit SHA for the workflow file.
-github.workspace	string	The default working directory on the runner for steps, and the default location of your repository when using the checkout action.
-Example contents of the github context
-The following example context is from a workflow run triggered by the push event. The event object in this example has been truncated because it is identical to the contents of the push webhook payload.
-
-Note: This context is an example only. The contents of a context depends on the workflow that you are running. Contexts, objects, and properties will vary significantly under different workflow run conditions.
-
-{
-  "token": "***",
-  "job": "dump_contexts_to_log",
-  "ref": "refs/heads/my_branch",
-  "sha": "c27d339ee6075c1f744c5d4b200f7901aad2c369",
-  "repository": "octocat/hello-world",
-  "repository_owner": "octocat",
-  "repositoryUrl": "git://github.com/octocat/hello-world.git",
-  "run_id": "1536140711",
-  "run_number": "314",
-  "retention_days": "90",
-  "run_attempt": "1",
-  "actor": "octocat",
-  "workflow": "Context testing",
-  "head_ref": "",
-  "base_ref": "",
-  "event_name": "push",
-  "event": {
-    ...
-  },
-  "server_url": "https://github.com",
-  "api_url": "https://api.github.com",
-  "graphql_url": "https://api.github.com/graphql",
-  "ref_name": "my_branch",
-  "ref_protected": false,
-  "ref_type": "branch",
-  "secret_source": "Actions",
-  "workspace": "/home/runner/work/hello-world/hello-world",
-  "action": "github_step",
-  "event_path": "/home/runner/work/_temp/_github_workflow/event.json",
-  "action_repository": "",
-  "action_ref": "",
-  "path": "/home/runner/work/_temp/_runner_file_commands/add_path_b037e7b5-1c88-48e2-bf78-eaaab5e02602",
-  "env": "/home/runner/work/_temp/_runner_file_commands/set_env_b037e7b5-1c88-48e2-bf78-eaaab5e02602"
-}
-Example usage of the github context
-This example workflow uses the github.event_name context to run a job only if the workflow run was triggered by the pull_request event.
-
-YAML
-name: Run CI
-on: [push, pull_request]
-
-jobs:
-  normal_ci:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run normal CI
-        run: echo "Running normal CI"
-
-  pull_request_ci:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' }}
-    steps:
-      - name: Run PR CI
-        run: echo "Running PR only CI"
-env context
-The env context contains variables that have been set in a workflow, job, or step. It does not contain variables inherited by the runner process. For more information about setting variables in your workflow, see "Workflow syntax for GitHub Actions."
-
-You can retrieve the values of variables stored in env context and use these values in your workflow file. You can use the env context in any key in a workflow step except for the id and uses keys. For more information on the step syntax, see "Workflow syntax for GitHub Actions."
-
-If you want to use the value of a variable inside a runner, use the runner operating system's normal method for reading environment variables.
-
-Property name	Type	Description
-env	object	This context changes for each step in a job. You can access this context from any step in a job. This object contains the properties listed below.
-env.<env_name>	string	The value of a specific environment variable.
-Example contents of the env context
-The contents of the env context is a mapping of variable names to their values. The context's contents can change depending on where it is used in the workflow run. In this example, the env context contains two variables.
-
-{
-  "first_name": "Mona",
-  "super_duper_var": "totally_awesome"
-}
-Example usage of the env context
-This example workflow shows variables being set in the env context at the workflow, job, and step levels. The ${{ env.VARIABLE-NAME }} syntax is then used to retrieve variable values within individual steps in the workflow.
-
-When more than one environment variable is defined with the same name, GitHub uses the most specific variable. For example, an environment variable defined in a step will override job and workflow environment variables with the same name, while the step executes. An environment variable defined for a job will override a workflow variable with the same name, while the job executes.
-
-YAML
-name: Hi Mascot
-on: push
-env:
-  mascot: Mona
-  super_duper_var: totally_awesome
-
-jobs:
-  windows_job:
-    runs-on: windows-latest
-    steps:
-      - run: echo 'Hi ${{ env.mascot }}'  # Hi Mona
-      - run: echo 'Hi ${{ env.mascot }}'  # Hi Octocat
+      - name: Dump strategy context
         env:
-          mascot: Octocat
-  linux_job:
-    runs-on: ubuntu-latest
-    env:
-      mascot: Tux
-    steps:
-      - run: echo 'Hi ${{ env.mascot }}'  # Hi Tux
-vars context
-Note: Configuration variables for GitHub Actions are in beta and subject to change.
+          STRATEGY_CONTEXT: ${{ toJson(strategy) }}
+        run: echo "$STRATEGY_CONTEXT"
 
-The vars context contains custom configuration variables set at the organization, repository, and environment levels. For more information about defining configuration variables for use in multiple workflows, see "Variables".
-
-Example contents of the vars context
-The contents of the vars context is a mapping of configuration variable names to their values.
-
-{
-  "mascot": "Mona"
-}
-Example usage of the vars context
-This example workflow shows how configuration variables set at the repository, environment, or organization levels are automatically available using the vars context.
-
-If a configuration variable has not been set, the return value of a context referencing the variable will be an empty string.
-
-The following example shows using configuration variables with the vars context across a workflow. Each of the following configuration variables have been defined at the repository, organization, or environment levels.
-
-YAML
-on:
-  workflow_dispatch:
-env:
-  # Setting an environment variable with the value of a configuration variable
-  env_var: ${{ vars.ENV_CONTEXT_VAR }}
-
-jobs:
-  display-variables:
-    name: ${{ vars.JOB_NAME }}
-    # You can use configuration variables with the `vars` context for dynamic jobs
-    if: ${{ vars.USE_VARIABLES == 'true' }}
-    runs-on: ${{ vars.RUNNER }}
-    environment: ${{ vars.ENVIRONMENT_STAGE }}
-    steps:
-    - name: Use variables
-      run: |
-        echo "repository variable : $REPOSITORY_VAR"
-        echo "organization variable : $ORGANIZATION_VAR"
-        echo "overridden variable : $OVERRIDE_VAR"
-        echo "variable from shell environment : $env_var"
-      env:
-        REPOSITORY_VAR: ${{ vars.REPOSITORY_VAR }}
-        ORGANIZATION_VAR: ${{ vars.ORGANIZATION_VAR }}
-        OVERRIDE_VAR: ${{ vars.OVERRIDE_VAR }}
-        
-    - name: ${{ vars.HELLO_WORLD_STEP }}
-      if: ${{ vars.HELLO_WORLD_ENABLED == 'true' }}
-      uses: actions/hello-world-javascript-action@main
-      with:
-        who-to-greet: ${{ vars.GREET_NAME }}
-job context
-The job context contains information about the currently running job.
-
-Property name	Type	Description
-job	object	This context changes for each job in a workflow run. You can access this context from any step in a job. This object contains all the properties listed below.
-job.container	object	Information about the job's container. For more information about containers, see "Workflow syntax for GitHub Actions."
-job.container.id	string	The ID of the container.
-job.container.network	string	The ID of the container network. The runner creates the network used by all containers in a job.
-job.services	object	The service containers created for a job. For more information about service containers, see "Workflow syntax for GitHub Actions."
-job.services.<service_id>.id	string	The ID of the service container.
-job.services.<service_id>.network	string	The ID of the service container network. The runner creates the network used by all containers in a job.
-job.services.<service_id>.ports	object	The exposed ports of the service container.
-job.status	string	The current status of the job. Possible values are success, failure, or cancelled.
-Example contents of the job context
-This example job context uses a PostgreSQL service container with mapped ports. If there are no containers or service containers used in a job, the job context only contains the status property.
-
-{
-  "status": "success",
-  "container": {
-    "network": "github_network_53269bd575974817b43f4733536b200c"
-  },
-  "services": {
-    "postgres": {
-      "id": "60972d9aa486605e66b0dad4abb638dc3d9116f566579e418166eedb8abb9105",
-      "ports": {
-        "5432": "49153"
-      },
-      "network": "github_network_53269bd575974817b43f4733536b200c"
-    }
-  }
-}
+      - name: Conditional Step based on event name
+        if: ${{ github.event_name == 'pull_request' }}
+        run: echo "This is a pull request event."
