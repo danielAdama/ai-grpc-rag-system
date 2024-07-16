@@ -25,25 +25,25 @@ jobs:
 
     - name: Create .env file dynamically
       run: |
-        echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> $GITHUB_ENV
-        echo "QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}" >> $GITHUB_ENV
-        echo "QDRANT_URL=${{ secrets.QDRANT_URL }}" >> $GITHUB_ENV
-        echo "REDIS_DB=${{ secrets.REDIS_DB }}" >> $GITHUB_ENV
-        echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> $GITHUB_ENV
-        echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> $GITHUB_ENV
-        echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> $GITHUB_ENV
-      env:
-        GITHUB_ENV: /github/workflow/env
+        echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
+        echo "QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}" >> .env
+        echo "QDRANT_URL=${{ secrets.QDRANT_URL }}" >> .env
+        echo "REDIS_DB=${{ secrets.REDIS_DB }}" >> .env
+        echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+        echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+        echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
 
     - name: Print environment variables
       run: |
-        echo "GROQ_API_KEY: $GROQ_API_KEY"
-        echo "QDRANT_API_KEY: $QDRANT_API_KEY"
-        echo "QDRANT_URL: $QDRANT_URL"
-        echo "REDIS_DB: $REDIS_DB"
-        echo "REDIS_HOST: $REDIS_HOST"
-        echo "REDIS_PASSWORD: $REDIS_PASSWORD"
-        echo "REDIS_PORT: $REDIS_PORT"
+        cat .env
 
     - name: Run tests
-      run: pytest
+      run: |
+        # Activate the virtual environment if you're using one
+        # source venv/bin/activate
+        # Then install python-dotenv if it's not already installed
+        # pip install python-dotenv
+        # Load the .env file into the environment
+        python -m dotenv .env
+        # Now you can run your tests
+        pytest
