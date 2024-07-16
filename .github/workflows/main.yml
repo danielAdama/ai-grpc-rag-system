@@ -1,24 +1,47 @@
-name: Example Workflow with Multiple Secrets
-on: [push]
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  example-job:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
         with:
-          node-version: '14'
+          python-version: '3.11'
 
-      - name: Use secrets
+      - name: Install dependencies
         run: |
-          echo "NPM_TOKEN: ${{ secrets.NPM_TOKEN }}"
-          echo "SUPERSECRET: ${{ secrets.SUPERSECRET }}"
-          echo "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}"
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          SUPERSECRET: ${{ secrets.SUPERSECRET }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create .env file dynamically
+        run: |
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+          echo "QDRANT_API_KEY=${{ secrets.QDRANT_API_KEY }}" >> .env
+          echo "QDRANT_URL=${{ secrets.QDRANT_URL }}" >> .env
+          echo "REDIS_DB=${{ secrets.REDIS_DB }}" >> .env
+          echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> .env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> .env
+          echo "REDIS_PORT=${{ secrets.REDIS_PORT }}" >> .env
+
+      - name: Print environment variables
+        run: |
+          echo "GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}"
+          echo "QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}"
+          echo "QDRANT_URL: ${{ secrets.QDRANT_URL }}"
+          echo "REDIS_DB: ${{ secrets.REDIS_DB }}"
+          echo "REDIS_HOST: ${{ secrets.REDIS_HOST }}"
+          echo "REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}"
+          echo "REDIS_PORT: ${{ secrets.REDIS_PORT }}"
+
+    # - name: Run tests
+    #   run: pytest
