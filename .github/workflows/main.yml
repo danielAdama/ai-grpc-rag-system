@@ -43,13 +43,13 @@ jobs:
 
     - name: Print environment variables
       run: |
-        echo "GROQ_API_KEY=$GROQ_API_KEY"
-        echo "QDRANT_API_KEY=$QDRANT_API_KEY"
-        echo "QDRANT_URL=$QDRANT_URL"
-        echo "REDIS_DB=$REDIS_DB"
-        echo "REDIS_HOST=$REDIS_HOST"
-        echo "REDIS_PASSWORD=$REDIS_PASSWORD"
-        echo "REDIS_PORT=$REDIS_PORT"
+        echo "GROQ_API_KEY=${GROQ_API_KEY}"
+        echo "QDRANT_API_KEY=${QDRANT_API_KEY}"
+        echo "QDRANT_URL=${QDRANT_URL}"
+        echo "REDIS_DB=${REDIS_DB}"
+        echo "REDIS_HOST=${REDIS_HOST}"
+        echo "REDIS_PASSWORD=${REDIS_PASSWORD}"
+        echo "REDIS_PORT=${REDIS_PORT}"
 
     # - name: Run tests
     #   run: pytest
