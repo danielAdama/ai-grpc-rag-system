@@ -51,6 +51,5 @@ jobs:
         echo "REDIS_PASSWORD=$REDIS_PASSWORD"
         echo "REDIS_PORT=$REDIS_PORT"
 
-    # - name: Run tests
-    #   run: pytest
-
+    - name: Run tests
+      run: pytest
