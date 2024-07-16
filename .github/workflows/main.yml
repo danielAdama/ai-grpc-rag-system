@@ -11,6 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+      QDRANT_URL: ${{ secrets.QDRANT_URL }}
+      REDIS_DB: ${{ secrets.REDIS_DB }}
+      REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
