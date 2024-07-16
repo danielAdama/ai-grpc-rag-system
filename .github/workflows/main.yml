@@ -44,6 +44,4 @@ jobs:
         # Then install python-dotenv if it's not already installed
         # pip install python-dotenv
         # Load the .env file into the environment
-        python -m dotenv .env
-        # Now you can run your tests
-        pytest
+        python -c "import os; import dotenv; dotenv.load_dotenv('.env'); os.system('pytest')"
