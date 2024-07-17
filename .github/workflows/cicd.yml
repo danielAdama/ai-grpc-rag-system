@@ -8,7 +8,6 @@ on:
 
 jobs:
   push_to_registry:
-    name: Run tests and Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -64,8 +63,13 @@ jobs:
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: adamadaniel321@gmail.com/pdf-service:latest
+      run: |
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest .
+        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest
+
+    # - name: Build and push Docker image
+    #   uses: docker/build-push-action@v4
+    #   with:
+    #     context: .
+    #     push: true
+    #     tags: adamadaniel321@gmail.com/pdf-service:latest
