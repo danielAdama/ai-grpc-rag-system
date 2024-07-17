@@ -47,15 +47,11 @@ jobs:
         path: .env
         key: env-cache-${{ github.sha }}
 
-    - name: Print environment variables
+    - name: Debug environment variables
       run: |
         cat .env
 
-    # Example of a subsequent step using the cached .env file
-    - name: Example step using .env
+    - name: Run tests
       run: |
         source .env
-        echo "Using cached .env file with GROQ_API_KEY=$GROQ_API_KEY"
-
-    # - name: Run tests
-    #   run: pytest
+        pytest
