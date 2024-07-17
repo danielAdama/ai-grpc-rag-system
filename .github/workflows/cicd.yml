@@ -62,10 +62,9 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-    - name: Build and push Docker image
+    - name: Build Docker image
       run: |
         docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest .
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest
 
     # - name: Build and push Docker image
     #   uses: docker/build-push-action@v4
