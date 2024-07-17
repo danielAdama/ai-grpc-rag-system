@@ -60,12 +60,9 @@ jobs:
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
-        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+        password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
     - name: Build and push Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: true
-        tags: adamadaniel321@gmail.com/pdf-service:latest
-        # dockerfile: Dockerfile
+      run: |
+        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest .
+       #docker push ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest
