@@ -64,7 +64,6 @@ jobs:
       run: docker build -t pdf-service .
 
     - name: Push to Docker Hub
-      if: success()
       run: |
         docker tag pdf-service:latest adamadaniel321@gmail.com/pdf-service:latest
         docker push adamadaniel321@gmail.com/pdf-service:latest
