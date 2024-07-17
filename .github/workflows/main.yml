@@ -66,5 +66,5 @@ jobs:
     - name: Push to Docker Hub
       if: success()
       run: |
-        docker tag pdf-service:latest ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest
-        docker push ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest
+        docker tag pdf-service:latest adamadaniel321@gmail.com/pdf-service:latest
+        docker push adamadaniel321@gmail.com/pdf-service:latest
