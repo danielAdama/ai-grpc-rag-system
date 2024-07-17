@@ -47,7 +47,7 @@ jobs:
         path: .env
         key: env-cache-${{ github.sha }}
 
-    - name: Debug environment variables
+    - name: Debug environment variable
       run: |
         cat .env
 
