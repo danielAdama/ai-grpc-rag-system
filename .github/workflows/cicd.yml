@@ -62,4 +62,4 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        docker build -t adamadaniel321@gmail/pdf-service:latest .
+        docker build -t adamadaniel321@gmail.com/pdf-service:latest .
