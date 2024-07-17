@@ -160,6 +160,10 @@ This will start the server and it will listen on port `50051`.
 }
 ```
 
+### CI/CD Pipeline
+<img width="1680" alt="Screenshot 2024-07-17 at 14 58 34" src="https://github.com/user-attachments/assets/e36dc907-049c-403c-abc4-10f805c34e59">
+
+
 ## GRPC Services
 
 ### PDFService
