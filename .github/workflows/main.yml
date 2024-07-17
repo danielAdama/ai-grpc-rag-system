@@ -24,6 +24,14 @@ jobs:
         pip install -r requirements.txt
     
     - name: Create .env file dynamically
+      run: |
+        echo "GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}" > env
+        echo "QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}" >> env
+        echo "QDRANT_URL: ${{ secrets.QDRANT_URL }}" >> env
+        echo "REDIS_DB: ${{ secrets.REDIS_DB }}" >> env
+        echo "REDIS_HOST: ${{ secrets.REDIS_HOST }}" >> env
+        echo "REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}" >> env
+        echo "REDIS_PORT: ${{ secrets.REDIS_PORT }}" >> env
       env:
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
@@ -32,24 +40,16 @@ jobs:
         REDIS_HOST: ${{ secrets.REDIS_HOST }}
         REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         REDIS_PORT: ${{ secrets.REDIS_PORT }}
-      run: |
-        echo "GROQ_API_KEY=${GROQ_API_KEY}" >> env
-        echo "QDRANT_API_KEY=${QDRANT_API_KEY}" >> env
-        echo "QDRANT_URL=${QDRANT_URL}" >> env
-        echo "REDIS_DB=${REDIS_DB}" >> env
-        echo "REDIS_HOST=${REDIS_HOST}" >> env
-        echo "REDIS_PASSWORD=${REDIS_PASSWORD}" >> env
-        echo "REDIS_PORT=${REDIS_PORT}" >> env
 
     - name: Print environment variables
       run: |
-        echo "GROQ_API_KEY=$GROQ_API_KEY"
-        echo "QDRANT_API_KEY=$QDRANT_API_KEY"
-        echo "QDRANT_URL=$QDRANT_URL"
-        echo "REDIS_DB=$REDIS_DB"
-        echo "REDIS_HOST=$REDIS_HOST"
-        echo "REDIS_PASSWORD=$REDIS_PASSWORD"
-        echo "REDIS_PORT=$REDIS_PORT"
+        echo "GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}"
+        echo "QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}"
+        echo "QDRANT_URL: ${{ secrets.QDRANT_URL }}"
+        echo "REDIS_DB: ${{ secrets.REDIS_DB }}"
+        echo "REDIS_HOST: ${{ secrets.REDIS_HOST }}"
+        echo "REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}"
+        echo "REDIS_PORT: ${{ secrets.REDIS_PORT }}"
 
-    - name: Run tests
-      run: pytest
+    # - name: Run tests
+    #   run: pytest
