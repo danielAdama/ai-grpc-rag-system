@@ -62,5 +62,5 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        docker build -t pdf-service:latest .
+        docker build -t adamadaniel321/pdf-service:latest .
         docker push adamadaniel321/pdf-service:latest
