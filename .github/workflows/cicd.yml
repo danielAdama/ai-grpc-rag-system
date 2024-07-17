@@ -64,7 +64,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/pdf-service:latest .
+        docker build -t adamadaniel321@gmail.com/pdf-service:latest .
 
     # - name: Build and push Docker image
     #   uses: docker/build-push-action@v4
