@@ -1,195 +1,137 @@
-# AI-GRPC-RAG-System Documentation
+# AI gRPC RAG System
 
-## Table of Contents
-1. [Project Overview](#project-overview)
-2. [Directory Structure](#directory-structure)
-3. [Installation and Setup](#installation-and-setup)
-4. [Running the Project](#running-the-project)
-5. [Usage](#usage)
-6. [GRPC Services](#grpc-services)
-7. [Configuration](#configuration)
-8. [Logging](#logging)
-9. [Testing](#testing)
+A gRPC service for working with PDF documents: upload them, search them in natural language and get summaries. Documents are embedded into Qdrant, answers come from an LLM, and results are cached in Redis. A CI/CD pipeline builds and ships the container.
 
-## Project Overview
+![Search](docs/screenshots/search-1.png)
 
-The AI-GRPC-RAG-System is designed to provide functionalities such as uploading, searching, and summarizing PDF documents using a GRPC service. It is built using Python, GRPC, and other supporting libraries and frameworks.
+## Features
 
-## Directory Structure
+- **UploadPDF:** ingest a PDF with metadata (collection and document type), then chunk and embed it.
+- **Search:** semantic search across documents, with metadata filters.
+- **Summarize:** an LLM-written summary of the passages that answer a query.
 
-```
-.
-├── Makefile
-├── README.md
-├── config
-│   ├── __init__.py
-│   ├── config_helper.py
-│   ├── logger.py
-│   └── qdrant_client.py
-├── env_config
-│   └── app_config.yml
-├── gen_ai
-│   ├── RAGLLM
-│   │   ├── __init__.py
-│   ├── __init__.py
-│   └── prompt
-│       └── templates
-│           ├── system_template.txt
-│           └── user_template.txt
-├── pdf_service.proto
-├── requirements.txt
-├── src
-│   ├── client
-│   │   └── __init__.py
-│   ├── pdf
-│   │   ├── services
-│   │   │   ├── __init__.py
-│   │   │   └── pdf_service.py
-│   │   └── uploads
-│   │       ├── Education_in_Nigeria_A_Futuristic_Perspective.pdf
-│   │       ├── Research_Paper_on_Artificial_Intelligence.pdf
-│   │       └── paper_8.pdf
-│   ├── proto
-│   │   └── pdf_service.proto
-│   ├── schemas
-│   │   ├── __init__.py
-│   │   └── search_schemas.py
-│   ├── server
-│   │   ├── __init__.py
-│   │   ├── pdf_service.py
-│   │   ├── pdf_service_pb2.py
-│   │   └── pdf_service_pb2_grpc.py
-│   └── utils
-│       ├── __init__.py
-└── summarization_service.proto
-```
+## Built with
 
-## Installation and Setup
+Python · gRPC · Qdrant · Redis · Groq · Docker · GitHub Actions
+
+## Getting started
 
 ### Prerequisites
 
-- Python 3.7+
-- GRPC tools
-- virtualenv
+- Python 3.10+
+- `grpcio-tools`
+- A running Qdrant instance and Redis (or Docker)
 
-### Steps
+### 1. Clone and install
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/yourusername/ai-grpc-rag-system.git
-   cd ai-grpc-rag-system
-   ```
+```bash
+git clone https://github.com/danielAdama/ai-grpc-rag-system.git
+cd ai-grpc-rag-system
 
-2. Create a virtual environment:
-   ```sh
-   python3 -m venv aenv
-   source aenv/bin/activate
-   ```
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-3. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
+### 2. Generate the gRPC code
 
-4. Generate GRPC code from protobuf files:
-   ```sh
-   python -m grpc_tools.protoc -I=src/proto --python_out=src/server --grpc_python_out=src/server src/proto/pdf_service.proto
-   ```
+```bash
+python -m grpc_tools.protoc -I=src/proto \
+  --python_out=src/server --grpc_python_out=src/server \
+  src/proto/pdf_service.proto
+```
 
-## Running the Project
+### 3. Configure
 
-To start the GRPC server, run:
+Settings live in `env_config/app_config.yml`.
 
-```sh
+### 4. Run the server
+
+```bash
 python src/server/pdf_service.py
 ```
 
-This will start the server and it will listen on port `50051`.
+The server listens on port `50051`.
+
+### Or run with Docker
+
+```bash
+docker build -t ai-grpc-rag-system .
+docker run -p 50051:50051 ai-grpc-rag-system
+```
 
 ## Usage
 
-### Upload PDF
-<img width="1680" alt="pdf upload" src="https://github.com/user-attachments/assets/b4f29236-fbf6-481f-989b-edf09ed179f2">
+All calls are on `PDFService` with `Content-Type: application/grpc`.
 
-<img width="1680" alt="pdf upload 2" src="https://github.com/user-attachments/assets/0169228f-13c9-4ba9-bc0f-c6f3b3260714">
+### UploadPDF
 
-<img width="1680" alt="pdf upload 3" src="https://github.com/user-attachments/assets/cec3bff5-ab3c-4f9f-af7a-3f3ed98bb60e">
-
-<img width="1680" alt="pdf upload 4" src="https://github.com/user-attachments/assets/16d76ede-1043-4ccc-a93f-6da44f488d65">
-
-- Endpoint: `PDFService/UploadPDF`
-- Content-Type: application/grpc
-
-#### Request Body:
 ```json
 {
-    "collection_name": "pdf-articles",
-    "document_type": "artificial_intelligence_document",
-    "filename": "paper_8.pdf"
+  "collection_name": "pdf-articles",
+  "document_type": "artificial_intelligence_document",
+  "filename": "paper_8.pdf"
 }
 ```
 
+![Upload](docs/screenshots/upload-1.png)
+
 ### Search
-<img width="1680" alt="Search 1" src="https://github.com/user-attachments/assets/3d235020-ee69-44bc-8e7b-4c6beba3af81">
 
-<img width="1680" alt="Search 2" src="https://github.com/user-attachments/assets/25e033cb-85d9-49fa-8c27-f2349ff690a1">
-
-- Endpoint: `PDFService/Search`
-- Content-Type: application/grpc
-
-#### Request Body:
 ```json
 {
-    "query": "How does Active Inference minimize free energy?",
-    "filters": "document_type:[artificial_intelligence_document]"
+  "query": "How does Active Inference minimize free energy?",
+  "filters": "document_type:[artificial_intelligence_document]"
 }
 ```
 
 ### Summarize
-<img width="1680" alt="Summarized" src="https://github.com/user-attachments/assets/ac0d0241-9587-44f7-abde-d8df3bee586a">
 
-- Endpoint: `PDFService/Summarize`
-- Content-Type: application/grpc
-
-#### Request Body:
 ```json
 {
-    "query": "How does Active Inference minimize free energy?",
-    "filters": "document_type:[artificial_intelligence_document]",
-    "user_id":"danny@gmail.com"
+  "query": "How does Active Inference minimize free energy?",
+  "filters": "document_type:[artificial_intelligence_document]",
+  "user_id": "user@example.com"
 }
 ```
 
-### CI/CD Pipeline
-<img width="1680" alt="Screenshot 2024-07-17 at 14 58 34" src="https://github.com/user-attachments/assets/e36dc907-049c-403c-abc4-10f805c34e59">
+![Summarize](docs/screenshots/summarize-1.png)
 
+## CI/CD
 
-## GRPC Services
+GitHub Actions builds and deploys the service on every push to `main`. See `.github/workflows/`.
 
-### PDFService
+![CI/CD pipeline](docs/screenshots/cicd.png)
 
-#### UploadPDF
+## Project structure
 
-Uploads a PDF file by specifying its filename and associated metadata.
-
-#### Search
-
-Searches the PDF documents based on the provided query and filters.
-
-#### Summarize
-
-Summarizes the content of the PDF documents based on the provided query and filters.
-
-## Configuration
-
-Configuration files are located in the `env_config` directory.
-
-- `app_config.yml`: Contains environment-specific configurations.
+```
+ai-grpc-rag-system/
+├── config/            # Config helpers, logger, Qdrant client
+├── env_config/        # app_config.yml
+├── gen_ai/            # RAG + LLM logic and prompt templates
+├── src/
+│   ├── proto/         # pdf_service.proto
+│   ├── server/        # gRPC server and generated code
+│   ├── client/        # Example client
+│   ├── pdf/           # PDF services and sample uploads
+│   ├── schemas/       # Request/response schemas
+│   └── utils/
+├── Dockerfile
+├── Makefile
+└── requirements.txt
+```
 
 ## Logging
 
-Logging configuration is defined in `config/logger.py`. The logger is used to log information, warnings, errors, and other runtime details.
+Logging is configured in `config/logger.py`.
 
 ## Testing
 
-To run tests, use the `test.py` file located in the `src` directory.
+```bash
+python src/test.py
+```
+
+## Contact
+
+Daniel Enemona Adama · adamadaniel321@gmail.com · [Portfolio](https://daniel-adama.vercel.app)
